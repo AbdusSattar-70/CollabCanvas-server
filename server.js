@@ -1,6 +1,5 @@
 const express = require("express");
 const { Server } = require("socket.io");
-const { createServer } = require("node:http");
 const cors = require('cors');
 require('dotenv').config();
 const connectDb = require('./config/connectDb');
@@ -16,14 +15,16 @@ const {
   getAllActiveRooms} = require('./utils/socketUser')
 const boardRouter = require("./routes/boardRouter");
 const URL = 'http://localhost:5173'
-const EXPRESSPORT = 3000
-const SOCKETPORT = 5000
+const PORT = process.env.PORT || 3000
 const app = express();
 
 app.use(cors({origin: URL}))
 
-const httpServer = createServer();
-const io = new Server(httpServer, { cors: URL });
+const expressServer = app.listen(PORT,()=>{
+  console.log(`Server Running on ${PORT}`)
+});
+
+const io = new Server(expressServer, { cors: URL });
 
 io.on(EVENT.CONNECTION, async (socket) => {
   try {
@@ -160,11 +161,3 @@ app.use('/api', boardRouter);
 // default error handler
 app.use(errorHandler);
 
-
-app.listen(EXPRESSPORT,()=>{
-  console.log(`express Server Running on ${EXPRESSPORT}`)
-});
-
-httpServer.listen(SOCKETPORT,()=>{
-  console.log(`socket Running on ${SOCKETPORT}`)
-})
