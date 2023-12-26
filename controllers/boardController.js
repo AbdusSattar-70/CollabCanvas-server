@@ -8,15 +8,18 @@ const { HTTP_STATUS_OK, HTTP_STATUS_CREATED, HTTP_STATUS_BAD_REQUEST, HTTP_STATU
 
 const getBoards = async (req, res, next) => {
   try {
-    const foundBoard = await Board.find();
-    if (!foundBoard.length) return res.status(HTTP_STATUS_NOT_FOUND);
+    const foundBoards = await Board.find().select('_id boardName userName url');
 
-    // Send success response
-    return res.status(HTTP_STATUS_OK).json(foundBoard);
+    if (!foundBoards.length) {
+      return res.status(HTTP_STATUS_NOT_FOUND).json({ error: 'No boards found' });
+    }
+
+    return res.status(HTTP_STATUS_OK).json(foundBoards);
   } catch (err) {
     next(err);
   }
 };
+
 
 const createBoard = async (req, res, next) => {
   try {
@@ -33,12 +36,13 @@ const createBoard = async (req, res, next) => {
     // Perform board creation
     const board = await createNewBoard({ userName, boardName });
 
-    // Send success response
-    return res.status(HTTP_STATUS_CREATED).json({ message: 'Board created successfully', board });
+    // Send success response with only the _id field
+    return res.status(HTTP_STATUS_CREATED).json({ message: 'Board created successfully', boardId: board._id });
   } catch (err) {
     next(err);
   }
 };
+
 
 
 const getDrawing = async (req, res) => {
