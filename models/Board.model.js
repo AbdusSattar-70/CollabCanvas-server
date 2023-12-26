@@ -1,32 +1,43 @@
-const mongoose = require('mongoose');
+const { default: mongoose } = require("mongoose");
 
-const boardSchema = new mongoose.Schema(
+const LineSchema = new mongoose.Schema({
+  tool: {
+    type: String,
+  },
+  points: {
+    type: [Number],
+  },
+  color: {
+    type: String,
+  },
+  brushSize: {
+    type: Number,
+  },
+  fillMode: {
+    type: String,
+  },
+  draggable: {
+    type: Boolean,
+  },
+});
+
+const BoardSchema = new mongoose.Schema(
   {
     boardName: {
       type: String,
     },
-
     userName: {
       type: String,
       required: true,
     },
-
-    lines: [
-      { tool: String,
-        points: [Number],
-        color: String,
-        brushSize: Number
-      }
-    ],
-    url: String
-
+    lines: [LineSchema],
+    url: String,
   },
-
-   {
-    timestamps: true
+  {
+    timestamps: true,
   }
 );
 
-const Board = mongoose.model('Board', boardSchema);
+const Board = mongoose.model('Board', BoardSchema);
 
 module.exports = Board;
