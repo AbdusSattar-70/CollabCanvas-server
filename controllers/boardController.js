@@ -71,7 +71,7 @@ const createBoard = async (req, res, next) => {
     // Perform board creation
     const board = await createNewBoard({ userName, boardName });
     // Send success response with only the _id field
-    return res.status(HTTP_STATUS_CREATED).json({ message: 'Board created successfully', boardId: board._id });
+    return res.status(HTTP_STATUS_OK).json({ message: 'Board created successfully', boardId: board._id });
   } catch (err) {
     next(err);
   }
