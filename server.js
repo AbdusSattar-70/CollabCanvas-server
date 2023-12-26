@@ -1,71 +1,74 @@
-const express = require("express");
-const { Server } = require("socket.io");
+// server.js
+const express = require('express');
+const { Server } = require('socket.io');
 const cors = require('cors');
 require('dotenv').config();
 const connectDb = require('./config/connectDb');
 const { logger } = require('./middleware/logEvents');
 const errorHandler = require('./middleware/errorHandler');
-const EVENT = require('./config/constant')
+const EVENT = require('./config/constant');
 const {
   buildMsg,
   activateUser,
   userLeavesApp,
   getUser,
   getUsersInRoom,
-  getAllActiveRooms} = require('./utils/socketUser')
-const boardRouter = require("./routes/boardRouter");
-const URL = 'https://collabcanvas-client.onrender.com' || 'http://localhost:5173'
-const PORT = process.env.PORT || 3000
+  getAllActiveRooms,
+} = require('./utils/socketUser');
+const boardRouter = require('./routes/boardRouter');
+const URL = 'http://localhost:5173';
+const PORT = process.env.PORT || 3000;
+
 const app = express();
 
-app.use(cors({origin: URL}))
+app.use(cors({ origin: URL }));
 
-const expressServer = app.listen(PORT,()=>{
-  console.log(`Server Running on ${PORT}`)
+const expressServer = app.listen(PORT, () => {
+  console.log(`Server Running on ${PORT}`);
 });
 
 const io = new Server(expressServer, { cors: URL });
 
-io.on(EVENT.CONNECTION, async (socket) => {
+io.on(EVENT.CONNECTION, (socket) => {
   try {
-    socket.on(EVENT.DRAW, async (data) => {
+    socket.on(EVENT.DRAW, (data) => {
       const room = getUser(socket.id)?.room;
       if (room) {
         socket.broadcast.to(room).emit(EVENT.DRAW, data);
       }
     });
 
-    socket.on(EVENT.UNDO, async (data) => {
+    socket.on(EVENT.UNDO, (data) => {
       const room = getUser(socket.id)?.room;
       if (room) {
         socket.broadcast.to(room).emit(EVENT.UNDO, data);
       }
     });
 
-    socket.on(EVENT.REDO, async (data) => {
+    socket.on(EVENT.REDO, (data) => {
       const room = getUser(socket.id)?.room;
       if (room) {
         socket.broadcast.to(room).emit(EVENT.REDO, data);
       }
     });
 
-    socket.on(EVENT.CLEAR, async () => {
+    socket.on(EVENT.CLEAR, () => {
       const room = getUser(socket.id)?.room;
       if (room) {
         socket.broadcast.to(room).emit(EVENT.CLEAR);
       }
     });
 
-    await handleEnterRoom(socket);
+    handleEnterRoom(socket);
 
-    socket.on(EVENT.DISCONNECT, async () => {
+    socket.on(EVENT.DISCONNECT, () => {
       const user = getUser(socket.id);
       if (user) {
-        await handleUserDisconnect(socket, user);
+        handleUserDisconnect(socket, user);
       }
     });
 
-    socket.on(EVENT.NOTIFY, async ({ text }) => {
+    socket.on(EVENT.NOTIFY, ({ text }) => {
       const room = getUser(socket.id)?.room;
       if (room) {
         io.to(room).emit(EVENT.NOTIFY, buildMsg(text));
@@ -76,24 +79,24 @@ io.on(EVENT.CONNECTION, async (socket) => {
   }
 });
 
-async function handleEnterRoom(socket) {
-  const { name, room } = await enterRoom(socket);
+function handleEnterRoom(socket) {
+  enterRoom(socket).then(({ name, room }) => {
+    notifyRoom(socket, `Welcome ${name} to the ${room} Board`);
+    broadcastToRoom(socket, `${name} has joined`);
 
-  notifyRoom(socket, `Welcome ${name} to the ${room} Board`);
-  broadcastToRoom(socket, `${name} has joined`);
+    io.to(room).emit(EVENT.USERLIST, {
+      users: getUsersInRoom(room),
+    });
 
-  io.to(room).emit(EVENT.USERLIST, {
-    users: getUsersInRoom(room),
-  });
-
-  io.emit(EVENT.ROOMLIST, {
-    rooms: getAllActiveRooms(),
+    io.emit(EVENT.ROOMLIST, {
+      rooms: getAllActiveRooms(),
+    });
   });
 }
 
-async function enterRoom(socket) {
+function enterRoom(socket) {
   return new Promise((resolve) => {
-    socket.on(EVENT.ENTERROOM, async ({ name, room }) => {
+    socket.on(EVENT.ENTERROOM, ({ name, room }) => {
       const prevRoom = getUser(socket.id)?.room;
       if (prevRoom) {
         socket.leave(prevRoom);
@@ -129,8 +132,7 @@ function broadcastToRoom(socket, message) {
   }
 }
 
-
-async function handleUserDisconnect(socket, user) {
+function handleUserDisconnect(socket, user) {
   userLeavesApp(socket.id);
 
   io.to(user.room).emit(EVENT.NOTIFY, buildMsg(`${user.name} left`));
@@ -151,7 +153,6 @@ app.use(logger);
 // built-in middleware to handle urlencoded form data
 app.use(express.urlencoded({ extended: true }));
 
-
 // built-in middleware for json
 app.use(express.json({ limit: '10mb' }));
 
@@ -160,4 +161,3 @@ app.use('/api', boardRouter);
 
 // default error handler
 app.use(errorHandler);
-

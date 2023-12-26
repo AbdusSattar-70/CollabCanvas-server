@@ -33,9 +33,12 @@ const getUsersInRoom=(room) =>{
     return UsersState.users.filter(user => user.room === room)
 }
 
-const getAllActiveRooms=() =>{
+
+
+const getAllActiveRooms= () => {
     return Array.from(new Set(UsersState.users.map(user => user.room)))
 }
+
 
 module.exports = {
   buildMsg,

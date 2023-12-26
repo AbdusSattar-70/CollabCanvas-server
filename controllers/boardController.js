@@ -60,15 +60,14 @@ const updateBoard = async (req, res) => {
     const restored = JSON.parse(pako.inflate(lines, { to: 'string' }));
     const _id = new mongoose.Types.ObjectId(boardId);
 
-    const data = await Board.findOneAndUpdate(
+    await Board.findOneAndUpdate(
       { _id },
       {
         $set: { lines: restored, url },
       },
-      { new: true }
     );
 
-    res.status(HTTP_STATUS_OK).json({ message: 'board data update success', data });
+    res.status(HTTP_STATUS_OK).json({ message: 'board data update success' });
   } catch (error) {
     console.error('Error saving drawing data:', error);
     res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).json({ message: 'Internal server error' });
