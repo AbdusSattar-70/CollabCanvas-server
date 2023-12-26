@@ -1,10 +1,49 @@
 /* eslint-disable consistent-return */
+
+const {Worker} = require('node:worker_threads');
 const Board = require('../models/Board.model');
 const http2 = require('http2');
-const { createNewBoard,generateBoardName } = require('../utils/commonMethod');
+const path = require('node:path');
+const { generateBoardName } = require('../utils/commonMethod');
 const { default: mongoose } = require('mongoose');
-const pako = require('pako')
-const { HTTP_STATUS_OK, HTTP_STATUS_CREATED, HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_NOT_FOUND } = http2.constants;
+const { HTTP_STATUS_OK, HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_NOT_FOUND } = http2.constants;
+
+const worker = new Worker(path.resolve(__dirname, 'decompress.js'));
+
+const updateBoard = async (req, res) => {
+  try {
+    const { boardId, lines, url } = req.body;
+    const _id = new mongoose.Types.ObjectId(boardId);
+
+    const postMessageAsync = (lines) => {
+      return new Promise((resolve, reject) => {
+        worker.once('message', (message) => resolve(message));
+        worker.once('error', reject);
+        worker.postMessage(lines);
+      });
+    };
+
+    const { restored } = await postMessageAsync(lines);
+    const query = Board.findOneAndUpdate(
+      { _id },
+      {
+        $set: { lines: restored, url },
+      },
+    );
+
+    const updatedBoard = await query.exec();
+
+    if (!updatedBoard) {
+      return res.status(HTTP_STATUS_NOT_FOUND).json({ message: 'Board not found' });
+    }
+
+    res.status(HTTP_STATUS_OK).json({ message: 'Board data update success', board: updatedBoard });
+  } catch (error) {
+    console.error('Error saving drawing data:', error);
+    res.status(HTTP_STATUS_BAD_REQUEST).json({ message: 'Internal server error' });
+  }
+};
+
 
 const getBoards = async (req, res, next) => {
   try {
@@ -24,18 +63,13 @@ const getBoards = async (req, res, next) => {
 const createBoard = async (req, res, next) => {
   try {
     const { userName } = req.body;
-
-    // Validate input data
     if (!userName) {
       return res.status(HTTP_STATUS_BAD_REQUEST).json({ error: 'Invalid input data' });
     }
-
     // Create a unique board name from username
     const boardName = generateBoardName(userName);
-
     // Perform board creation
     const board = await createNewBoard({ userName, boardName });
-
     // Send success response with only the _id field
     return res.status(HTTP_STATUS_CREATED).json({ message: 'Board created successfully', boardId: board._id });
   } catch (err) {
@@ -58,25 +92,10 @@ const getDrawing = async (req, res) => {
   }
 };
 
-const updateBoard = async (req, res) => {
-  try {
-    const { boardId, lines, url } = req.body;
-    const restored = JSON.parse(pako.inflate(lines, { to: 'string' }));
-    const _id = new mongoose.Types.ObjectId(boardId);
 
-    await Board.findOneAndUpdate(
-      { _id },
-      {
-        $set: { lines: restored, url },
-      },
-    );
 
-    res.status(HTTP_STATUS_OK).json({ message: 'board data update success' });
-  } catch (error) {
-    console.error('Error saving drawing data:', error);
-    res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).json({ message: 'Internal server error' });
-  }
-};
+
+
 
 module.exports = {
   getBoards,
@@ -84,3 +103,5 @@ module.exports = {
   getDrawing,
   updateBoard
 };
+
+
