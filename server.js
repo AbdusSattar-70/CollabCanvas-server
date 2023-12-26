@@ -15,7 +15,7 @@ const {
   getAllActiveRooms,
 } = require('./utils/socketUser');
 const boardRouter = require('./routes/boardRouter');
-const URL = 'https://658ae2b758d63aaba120bac0--iridescent-babka-f5a7a5.netlify.app';
+const URL = 'https://collabcanvas-client.onrender.com';
 const PORT = process.env.PORT || 3000;
 
 const app = express();
