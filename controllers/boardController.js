@@ -4,7 +4,7 @@ const {Worker} = require('node:worker_threads');
 const Board = require('../models/Board.model');
 const http2 = require('http2');
 const path = require('node:path');
-const { generateBoardName } = require('../utils/commonMethod');
+const { generateBoardName,createNewBoard } = require('../utils/commonMethod');
 const { default: mongoose } = require('mongoose');
 const { HTTP_STATUS_OK, HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_NOT_FOUND } = http2.constants;
 
