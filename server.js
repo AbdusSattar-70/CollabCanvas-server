@@ -8,8 +8,8 @@ const errorHandler = require('./middleware/errorHandler');
 const EVENT = require('./config/constant');
 const boardRouter = require("./routes/boardRouter");
 
-const URL = 'http://localhost:5173';
 const PORT = process.env.PORT || 3000;
+const URL = 'https://collabcanvas-client.onrender.com' || 'http://localhost:5173'
 const app = express();
 const expressServer = app.listen(PORT, () => console.log(`Server Running on ${PORT}`));
 const io = new Server(expressServer, { cors: URL });
